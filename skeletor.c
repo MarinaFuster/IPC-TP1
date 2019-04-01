@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <semaphore.h>
+#include <fcntl.h>
 
 #define SLAVEQ 5
 #define SIZE 100
@@ -14,13 +15,12 @@
 #define BUFFER_SIZE 256
 
 
-
 int hashFunction(char * buffer, char * fileName);
 
 
 int main(int argc, char** argv) {
     // PRIMERO CREO TODAS LAS VARIABLES Y LAS COSAS QUE NECESITE
-    sem_t * pipeSemaphore = sem_open("pipeSemaphore",O_RDWR);
+    sem_t * pipeSemaphore = sem_open("pipeSemaphore", O_CREAT); 
     int keepProcessing=1; int fileNumber=1;
 
     char * buffer=calloc(BUFFER_SIZE,BUFFER_SIZE);
