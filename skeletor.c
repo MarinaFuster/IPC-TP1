@@ -11,6 +11,7 @@
 
 #define SLAVEQ 5
 #define SIZE 100
+#define MD5NUM "md5num"
 #define MD5SUMPATH "/usr/bin/md5sum"
 #define BUFFER_SIZE 256
 
@@ -50,9 +51,10 @@ int hashFunction(char* buffer, char* fileName){
   pipe(p);
   int pid;
 
-  char* execv_arguments[2];
-  execv_arguments[0]=fileName;
-  execv_arguments[1]=NULL;
+  char* execv_arguments[3];
+  execv_arguments[0]=MD5NUM;
+  execv_arguments[1]=fileName;
+  execv_arguments[2]=NULL;
 
   if((pid=fork())==-1){
     perror("Error al crear el proceso\n");
