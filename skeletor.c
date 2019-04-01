@@ -11,7 +11,7 @@
 
 #define SLAVEQ 5
 #define SIZE 100
-#define MD5NUM "md5num"
+#define MD5SUM "md5sum"
 #define MD5SUMPATH "/usr/bin/md5sum"
 #define BUFFER_SIZE 256
 
@@ -52,7 +52,7 @@ int hashFunction(char* buffer, char* fileName){
   int pid;
 
   char* execv_arguments[3];
-  execv_arguments[0]=MD5NUM;
+  execv_arguments[0]=MD5SUM;
   execv_arguments[1]=fileName;
   execv_arguments[2]=NULL;
 
