@@ -16,43 +16,37 @@
 #define BUFFER_SIZE 256
 
 
-int hashFunction(char * buffer, char * fileName);
-
+int hashFunction(char * appPath, char * buffer, char * fileName, int * p);
+void cleanBuffer(char * buffer);
 
 int main(int argc, char** argv) {
     // PRIMERO CREO TODAS LAS VARIABLES Y LAS COSAS QUE NECESITE
     sem_t * pipeSemaphore = sem_open("pipeSemaphore", O_CREAT); 
-    int keepProcessing=1; int fileNumber=1;
+    int fileNumber=0;
+    int p[2];
+    pipe(p);
 
     char * buffer=calloc(BUFFER_SIZE,BUFFER_SIZE);
     char* fileName;
 
-    while(keepProcessing){
+    while(argv[++fileNumber] != NULL){
       fileName=argv[fileNumber];
 
-      hashFunction(buffer, fileName);
+      hashFunction(argv[0], buffer, fileName, p);
       write(1, buffer,BUFFER_SIZE);
-      free(buffer);
-      free(fileName);
-
-      fileNumber++;
-
-      if (fileNumber>argc){
-        keepProcessing=0;
-      }
+      cleanBuffer(buffer);
+  
     }
 
-
+    free(buffer);
     return 1;
 }
 
-int hashFunction(char* buffer, char* fileName){
-  int p[2];
-  pipe(p);
+int hashFunction(char * appPath,char * buffer, char * fileName, int * p){
   int pid;
 
   char* execv_arguments[3];
-  execv_arguments[0]=MD5SUM;
+  execv_arguments[0]=appPath; // By manual's convention
   execv_arguments[1]=fileName;
   execv_arguments[2]=NULL;
 
@@ -62,15 +56,22 @@ int hashFunction(char* buffer, char* fileName){
   }
 
   else if(pid==0){
-
     dup2(p[1], STDOUT_FILENO);
-    //close(p[1]);
-    //close(p[0]);
+    close(p[1]);
+    close(p[0]);
     execv(MD5SUMPATH, execv_arguments);
   }
+  int return_value;
+  wait(&return_value);
+  read(p[0], buffer, BUFFER_SIZE);
+  close(p[0]);
+  close(p[1]);
+  return 1;
+}
 
-    read(p[0], buffer, BUFFER_SIZE);
-    close(p[0]);
-    close(p[1]);
-    return 1;
+void 
+cleanBuffer(char * buffer){
+  for(int i=0; i<BUFFER_SIZE; i++){
+    buffer[i]=0;
+  }
 }
