@@ -21,7 +21,7 @@ void cleanBuffer(char * buffer);
 
 int main(int argc, char** argv) {
     // PRIMERO CREO TODAS LAS VARIABLES Y LAS COSAS QUE NECESITE
-    sem_t * pipeSemaphore = sem_open("pipeSemaphore", O_CREAT); 
+    sem_t * pipeSemaphore = sem_open("pipeSemaphore", O_CREAT);
     int fileNumber=0;
     int p[2];
     pipe(p);
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
       hashFunction(argv[0], buffer, fileName, p);
       write(1, buffer,BUFFER_SIZE);
       cleanBuffer(buffer);
-  
+
     }
 
     free(buffer);
@@ -61,16 +61,15 @@ int hashFunction(char * appPath,char * buffer, char * fileName, int * p){
     close(p[0]);
     execv(MD5SUMPATH, execv_arguments);
   }
-  int return_value;
-  wait(&return_value);
+  //int return_value;
+  //wait(&return_value);
   read(p[0], buffer, BUFFER_SIZE);
   close(p[0]);
   close(p[1]);
   return 1;
 }
 
-void 
-cleanBuffer(char * buffer){
+void cleanBuffer(char * buffer){
   for(int i=0; i<BUFFER_SIZE; i++){
     buffer[i]=0;
   }
