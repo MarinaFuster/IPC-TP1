@@ -110,6 +110,7 @@ main(int argc, char ** argv){
         distributed++;
     }
 
+
     // Create application semaphore
     sem_unlink("application_semaphore"); // Just in case...
     sem_t * application_semaphore;
