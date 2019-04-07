@@ -6,24 +6,31 @@
 #include <sys/shm.h> 
 #include <stdio.h> 
 #include <stdlib.h>
+#include <fcntl.h>           
+#include <sys/stat.h>        
+#include <semaphore.h>
+#include <signal.h>
+
 
 #define PIDLENGTH 10
 #define EXIT_ERROR 1
+#define SHARED_MEMORY_SIZE 50*150
 
 int main(int argc, char ** argv){
 
-	char pid[PIDLENGTH];
-	sleep(10); //Set timer of 10 seconds
-	fgets(pid, PIDLENGTH, stdin);
+    // Adapted code from https://stackoverflow.com/questions/3711830/set-a-timeout-for-reading-stdin
+	//char pid[PIDLENGTH];
+	//sleep(10);                      //Set timer of 10 seconds
+	//fgets(pid, PIDLENGTH, stdin);
 
-    int applicationPID = atoi(pid); 
-    if (applicationPID <= 0 || kill(applicationPID,0) < 0)
-    {
-        fprintf(stderr, "Invalid PID\n");
-        return(EXIT_ERROR);
-    }
+    //int applicationPID = atoi(pid); 
+    //if (applicationPID <= 0 || kill(applicationPID,0) < 0)
+    // {
+    //    fprintf(stderr, "Invalid PID\n");
+    //    return(EXIT_ERROR);
+    //}
 
-	key_t key = ftok("./application",1111);
+	key_t key = ftok("./application",1357);
 
 	int shmid = shmget(key,1024,0666|IPC_CREAT);
     if(shmid<0){
@@ -38,13 +45,27 @@ int main(int argc, char ** argv){
     }
 
     // Open application semaphore
-
+    sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0644, 0);
     
     // Create view semaphore
+    sem_unlink("view_semaphore"); // Just in case...
+    sem_t * view_semaphore;
+    view_semaphore = sem_open("view_semaphore", O_CREAT, 0644, 0);
+    if(view_semaphore == SEM_FAILED){
+        fprintf(stderr, "Error when creating semaphore\n");
+        return(EXIT_ERROR);
+    }
+    
+    // Printf hash results for files
 
+    int i=0;
 
-    // Printf hash results for files 
-
-
+    while(shmadd[i]!=-1){
+        sem_wait(application_semaphore);
+        while(shmadd[i]!='\0'){
+            putchar(shmadd[i++]);
+        }
+    }
+    
     return 0;
 }

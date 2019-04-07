@@ -24,7 +24,7 @@ main(int argc, char ** argv){
     }
 
     // Set up shared memory here!
-    key_t key = ftok("./application",1111); 
+    key_t key = ftok("./application",1357); 
     if(key == -1){
         perror("Error when executing ftok");
         exit(1);
@@ -126,7 +126,7 @@ main(int argc, char ** argv){
     char * memory_p=shmadd;
     while(remaining_files>0){
         
-        sem_wait(application_semaphore);
+
         read(hash_result_pipe[0], memory_p, 1024);
         sem_post(application_semaphore);
 
@@ -136,11 +136,12 @@ main(int argc, char ** argv){
             memory_p++;
         }        
     }
+    *memory_p=-1;
 
 
     // Kill slaves
     for(int i=0; i<SLAVEQ; i++){
-        printf("Killing %d child, pid: %d\n",i, slave_pid[i]);
+        //printf("Killing %d child, pid: %d\n",i, slave_pid[i]);
         kill(slave_pid[i], SIGKILL);
     }
 
@@ -150,8 +151,9 @@ main(int argc, char ** argv){
 
 
     // Close semaphore
+    sem_close(slaves_semaphore);
     sem_unlink("slaves_semaphore");
-    //sem_unlink("shared_memory_semaphore");
+    //sem_unlink("application_semaphore");
 
     // Return
     return 0;
