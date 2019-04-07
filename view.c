@@ -5,17 +5,24 @@
 #include <sys/ipc.h> 
 #include <sys/shm.h> 
 #include <stdio.h> 
+#include <stdlib.h>
 
 #define PIDLENGTH 10
 #define EXIT_ERROR 1
 
 int main(int argc, char ** argv){
 
-	//char pid[PIDLENGTH];
-	//sleep(2); //Set timer of 2 seconds
-	//fgets(pid, PIDLENGTH, stdin);
-	
-  
+	char pid[PIDLENGTH];
+	sleep(10); //Set timer of 10 seconds
+	fgets(pid, PIDLENGTH, stdin);
+
+    int applicationPID = atoi(pid); 
+    if (applicationPID <= 0 || kill(applicationPID,0) < 0)
+    {
+        fprintf(stderr, "Invalid PID\n");
+        return(EXIT_ERROR);
+    }
+
 	key_t key = ftok("./application",1111);
 
 	int shmid = shmget(key,1024,0666|IPC_CREAT);
@@ -30,7 +37,14 @@ int main(int argc, char ** argv){
         return(EXIT_ERROR);
     }
 
-    printf("Hola");
+    // Open application semaphore
+
+    
+    // Create view semaphore
+
+
+    // Printf hash results for files 
+
 
     return 0;
 }
