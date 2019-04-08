@@ -7,11 +7,9 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <stdlib.h> // Check if this is needed!
 #include "application.h"
 
-int hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments);
+int hash_of(char ** file_buffer, int * hash_result_pipe, int more_arguments);
 void clean(char * buffer);
 
 
@@ -22,6 +20,7 @@ main(int argc, char ** argv){
         fprintf(stderr, "At least one file to process is needed\n");
         return(EXIT_ERROR);
     }
+
 
     // Set up shared memory here!
     key_t key = ftok("./application",1356); 
@@ -61,7 +60,6 @@ main(int argc, char ** argv){
     }
 
 
-
     // Create slaves
     pid_t slave_pid[SLAVEQ];
 
@@ -75,20 +73,20 @@ main(int argc, char ** argv){
         }
         if(pid==0){
 
-            char* arguments[TOLERANCE/5];
-            for (int i=0; i< TOLERANCE/5; i++){
+            char* arguments[TOLERANCE/SLAVEQ];
+            for (int i=0; i< TOLERANCE/SLAVEQ; i++){
               arguments[i]=calloc(1, MAX_FILE_LENGTH);
             }
 
-            int moreArguments=0;
+            int more_arguments=0;
             while(1){
 
-                if (argc>25){
-                  moreArguments=1;
+                if (argc>TOLERANCE){
+                  more_arguments=1;
                 }
                 sem_wait(slaves_semaphore);
-                if(moreArguments){
-                  for (int j=0; j<TOLERANCE/5; j++){
+                if(more_arguments){
+                  for (int j=0; j<TOLERANCE/SLAVEQ; j++){
                     read(files_pipe[0], arguments[j], MAX_FILE_LENGTH);
                   }
                 }
@@ -97,15 +95,15 @@ main(int argc, char ** argv){
                 }
                 sem_post(slaves_semaphore);
 
-                if(hash_of(arguments, hash_result_pipe, moreArguments)==EXIT_ERROR){
+                if(hash_of(arguments, hash_result_pipe, more_arguments)==EXIT_ERROR){
                     fprintf(stderr,"Error when executing fork");
                     return(EXIT_ERROR);
                 }
 
-                for (i=0; i<TOLERANCE/5; i++){
+                for (i=0; i<TOLERANCE/SLAVEQ; i++){
                   clean(arguments[i]);
                 }
-                moreArguments=0;
+                more_arguments=0;
 
             }
             return 0;
@@ -113,8 +111,6 @@ main(int argc, char ** argv){
         }
         slave_pid[i]=pid;
     }
-
-
 
 
     // Distribute files
@@ -130,6 +126,7 @@ main(int argc, char ** argv){
         distributed++;
     }
     free(file_buffer);
+
 
     // Create application semaphore
     sem_unlink("application_semaphore"); // Just in case...
@@ -170,7 +167,6 @@ main(int argc, char ** argv){
     // Close pipes
     
 
-
     // Close semaphore
     sem_close(slaves_semaphore);
     sem_unlink("slaves_semaphore");
@@ -181,7 +177,7 @@ main(int argc, char ** argv){
 }
 
 int
-hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments){
+hash_of(char ** file_buffer, int * hash_result_pipe, int more_arguments){
 
     pid_t pid=fork();
     if(pid==-1){
@@ -189,18 +185,18 @@ hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments){
         return(EXIT_ERROR);
     }
     else if(pid==0){
-      char* execv_arguments[TOLERANCE/5+2];
+      char* execv_arguments[TOLERANCE/SLAVEQ+2]; // Extra 2 for self path and null
       char* execv_arguments2[3];
       dup2(hash_result_pipe[1],STDOUT_FILENO);
       close(hash_result_pipe[0]);
       close(hash_result_pipe[1]);
-      if(moreArguments){
+      if(more_arguments){
         //char * execv_arguments[7];
         execv_arguments[0]=SELF_PATH;
-        for (int i=0; i<TOLERANCE/5; i++){
+        for (int i=0; i<TOLERANCE/SLAVEQ; i++){
           execv_arguments[i+1]=file_buffer[i];
         }
-        execv_arguments[TOLERANCE/5+1]=NULL;
+        execv_arguments[TOLERANCE/SLAVEQ+1]=NULL;
         execv(MD5_PATH,execv_arguments);
       }
       else
@@ -210,9 +206,8 @@ hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments){
         execv_arguments2[2]=NULL;
         execv(MD5_PATH,execv_arguments2);
       }
-
-
     }
+
     return 0;
 }
 
