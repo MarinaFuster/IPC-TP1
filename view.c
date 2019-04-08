@@ -46,43 +46,39 @@ main(int argc, char ** argv){
 
 
     // Open application semaphore
-    sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0777, 0);
+    sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0644, 1);
 
 
-    // Create view semaphore
-    sem_unlink("view_semaphore"); // Just in case...
-    sem_t * view_semaphore;
-    view_semaphore = sem_open("view_semaphore", O_CREAT, 0666, 1);
-    if(view_semaphore == SEM_FAILED){
-        fprintf(stderr, "Error when creating semaphore\n");
-        return(EXIT_ERROR);
-    }
+    // Open files semaphore
+    sem_t * files_semaphore=sem_open("files_semaphore", O_CREAT, 0644, 1);
+
     
-
     // Printf hash results for files
     int i=0;
-    while(kill(applicationPID,0)>=0){
-        int sem_value=0;
-        sem_getvalue(application_semaphore,&sem_value);
-        //printf("El valor del semaforo es%d\n",sem_value);
+    int sem_value=0;
+    sem_getvalue(files_semaphore,&sem_value);
+    while(sem_value){
+        sem_wait(application_semaphore);
         while(shmadd[i]!='\0'){
+            if(shmadd[i]=='\n')
+                sem_value--;
             putchar(shmadd[i++]);
         }
-    }    
-    while(shmadd[i]!='\0'){
-        putchar(shmadd[i++]);
+        sem_post(application_semaphore);
     }
 
 
     // Close semaphore
     sem_close(application_semaphore);
     sem_unlink("application_semaphore");
+    sem_close(files_semaphore);
+    sem_unlink("files_semaphore");
 
-
+    
     // Free shared memory
     shmdt(shmadd);
-
-
+    
+    
     // Return
     return 0;
 }

@@ -1,7 +1,7 @@
 COMPILER=gcc
 APP_OUTPUT_FILE=application
 VIEW_OUTPUT_FILE=view
-FLAGS=-pthread
+FLAGS=-pthread -Wall
 
 all: application.o view.o
 		 $(COMPILER) -o $(APP_OUTPUT_FILE) application.o $(FLAGS) 

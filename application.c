@@ -24,6 +24,16 @@ main(int argc, char ** argv){
     }
 
 
+    // Create files semaphore
+    sem_unlink("files_semaphore"); // Just in case...
+    sem_t * files_semaphore;
+    files_semaphore = sem_open("files_semaphore", O_CREAT, 0644, argc-1);
+    if(files_semaphore == SEM_FAILED){
+        fprintf(stderr, "Error when creating semaphore\n");
+        return(EXIT_ERROR);
+    }
+
+
     // Set up shared memory here!
     key_t key = ftok("./application",1356); 
     if(key == -1){
@@ -66,7 +76,6 @@ main(int argc, char ** argv){
     pid_t slave_pid[SLAVEQ];
 
     for(int i=0; i<SLAVEQ; i++){
-        printf("Creating slave %d...\n",i);
 
         pid_t pid=fork();
         if(pid==-1){
@@ -85,12 +94,11 @@ main(int argc, char ** argv){
                 more_arguments=1;
             }
             while(1){
-
                 sem_wait(slaves_semaphore);
                 if(more_arguments){
                   for (int j=0; j<TOLERANCE/SLAVEQ; j++){
                     read(files_pipe[0], arguments[j], MAX_FILE_LENGTH);
-                  }
+                  } 
                 }
                 else{
                   read(files_pipe[0], arguments[0], MAX_FILE_LENGTH);
@@ -100,16 +108,11 @@ main(int argc, char ** argv){
                 if(hash_of(arguments, hash_result_pipe, more_arguments)==EXIT_ERROR){
                     fprintf(stderr,"Error when executing fork");
                     return(EXIT_ERROR);
-                }
-
-                for (i=0; i<TOLERANCE/SLAVEQ; i++){
-                  clean(arguments[i]);
-                }
+                }    
+                clean(arguments[0]);
                 more_arguments=0;
-
             }
             return 0;
-
         }
         slave_pid[i]=pid;
     }
@@ -133,7 +136,7 @@ main(int argc, char ** argv){
     // Create application semaphore
     sem_unlink("application_semaphore"); // Just in case...
     sem_t * application_semaphore;
-    application_semaphore = sem_open("application_semaphore", O_CREAT, 0777, 0);
+    application_semaphore = sem_open("application_semaphore", O_CREAT, 0777, 1);
     if(application_semaphore == SEM_FAILED){
         fprintf(stderr, "Error when creating semaphore\n");
         return(EXIT_ERROR);
@@ -145,15 +148,14 @@ main(int argc, char ** argv){
     char * memory_p=shmadd;
     while(remaining_files>0){
         
-        //sem_wait(application_semaphore);
         read(hash_result_pipe[0], memory_p, 1024);
-        //fprintf(stderr,"%s\n",shmadd);    
-        sem_post(application_semaphore);
-        sleep(2);
-        fprintf(stderr,"please post the result\n");
+        
         while((*memory_p)!='\0'){
-            if((*memory_p)=='\n')
+            if((*memory_p)=='\n'){
+                sem_wait(application_semaphore);
                 remaining_files--;
+                sem_post(application_semaphore);
+            }
             memory_p++;
         }        
     }
@@ -161,17 +163,28 @@ main(int argc, char ** argv){
 
     // Kill slaves
     for(int i=0; i<SLAVEQ; i++){
-        //printf("Killing %d child, pid: %d\n",i, slave_pid[i]);
         kill(slave_pid[i], SIGKILL);
     }
 
 
     // Close pipes
-    
+    close(files_pipe[0]);
+    close(files_pipe[1]);
+    close(hash_result_pipe[0]);
+    close(hash_result_pipe[1]);
+
 
     // Close semaphore
     sem_close(slaves_semaphore);
     sem_unlink("slaves_semaphore");
+    sem_close(application_semaphore);
+    sem_unlink("application_semaphore");
+    //sem_close(files_semaphore);
+    //sem_unlink("files_semaphore");
+
+
+    // Free resources
+    shmdt(shmadd);
 
 
     // Return
