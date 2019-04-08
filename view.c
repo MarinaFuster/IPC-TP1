@@ -24,7 +24,7 @@ int main(int argc, char ** argv){
 	fgets(pid, PIDLENGTH, stdin);
 
     int applicationPID = atoi(pid); 
-    if (applicationPID <= 0 || kill(applicationPID,0) < 0){
+    if (applicationPID <= 0){
         fprintf(stderr, "Invalid PID\n");
         return(EXIT_ERROR);
     }
