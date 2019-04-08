@@ -24,7 +24,7 @@ main(int argc, char ** argv){
     }
 
     // Set up shared memory here!
-    key_t key = ftok("./application",1357); 
+    key_t key = ftok("./application",1356); 
     if(key == -1){
         perror("Error when executing ftok");
         exit(1);
@@ -73,11 +73,11 @@ main(int argc, char ** argv){
             return(EXIT_ERROR);
         }
         if(pid==0){
-            
-            char * file_buffer=calloc(1,MAX_FILE_LENGTH);
 
             while(1){
                 
+                char * file_buffer=calloc(1,MAX_FILE_LENGTH);
+
                 sem_wait(slaves_semaphore);
                 read(files_pipe[0], file_buffer, MAX_FILE_LENGTH);
                 sem_post(slaves_semaphore);
@@ -87,7 +87,7 @@ main(int argc, char ** argv){
                     return(EXIT_ERROR);
                 }
 
-                clean(file_buffer);
+                free(file_buffer);
 
             }
             return 0;
@@ -109,12 +109,12 @@ main(int argc, char ** argv){
         clean(file_buffer);
         distributed++;
     }
-
+    free(file_buffer);
 
     // Create application semaphore
     sem_unlink("application_semaphore"); // Just in case...
     sem_t * application_semaphore;
-    application_semaphore = sem_open("application_semaphore", O_CREAT, 0644, 1);
+    application_semaphore = sem_open("application_semaphore", O_CREAT, 0777, 0);
     if(application_semaphore == SEM_FAILED){
         fprintf(stderr, "Error when creating semaphore\n");
         return(EXIT_ERROR);
@@ -126,17 +126,18 @@ main(int argc, char ** argv){
     char * memory_p=shmadd;
     while(remaining_files>0){
         
-
+        //sem_wait(application_semaphore);
         read(hash_result_pipe[0], memory_p, 1024);
+        //fprintf(stderr,"%s\n",shmadd);    
         sem_post(application_semaphore);
-
+        sleep(1);
+        fprintf(stderr,"please post the result\n");
         while((*memory_p)!='\0'){
             if((*memory_p)=='\n')
                 remaining_files--;
             memory_p++;
         }        
     }
-    *memory_p=-1;
 
 
     // Kill slaves
@@ -147,13 +148,13 @@ main(int argc, char ** argv){
 
 
     // Close pipes
-
+    
 
 
     // Close semaphore
     sem_close(slaves_semaphore);
     sem_unlink("slaves_semaphore");
-    //sem_unlink("application_semaphore");
+
 
     // Return
     return 0;

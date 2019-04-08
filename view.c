@@ -19,18 +19,17 @@
 int main(int argc, char ** argv){
 
     // Adapted code from https://stackoverflow.com/questions/3711830/set-a-timeout-for-reading-stdin
-	//char pid[PIDLENGTH];
-	//sleep(10);                      //Set timer of 10 seconds
-	//fgets(pid, PIDLENGTH, stdin);
+	char pid[PIDLENGTH];
+	sleep(3);                      //Set timer of 10 seconds
+	fgets(pid, PIDLENGTH, stdin);
 
-    //int applicationPID = atoi(pid); 
-    //if (applicationPID <= 0 || kill(applicationPID,0) < 0)
-    // {
-    //    fprintf(stderr, "Invalid PID\n");
-    //    return(EXIT_ERROR);
-    //}
+    int applicationPID = atoi(pid); 
+    if (applicationPID <= 0 || kill(applicationPID,0) < 0){
+        fprintf(stderr, "Invalid PID\n");
+        return(EXIT_ERROR);
+    }
 
-	key_t key = ftok("./application",1357);
+	key_t key = ftok("./application",1356);
 
 	int shmid = shmget(key,1024,0666|IPC_CREAT);
     if(shmid<0){
@@ -45,12 +44,12 @@ int main(int argc, char ** argv){
     }
 
     // Open application semaphore
-    sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0644, 0);
+    sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0777, 0);
     
     // Create view semaphore
     sem_unlink("view_semaphore"); // Just in case...
     sem_t * view_semaphore;
-    view_semaphore = sem_open("view_semaphore", O_CREAT, 0644, 0);
+    view_semaphore = sem_open("view_semaphore", O_CREAT, 0666, 1);
     if(view_semaphore == SEM_FAILED){
         fprintf(stderr, "Error when creating semaphore\n");
         return(EXIT_ERROR);
@@ -60,12 +59,27 @@ int main(int argc, char ** argv){
 
     int i=0;
 
-    while(shmadd[i]!=-1){
-        sem_wait(application_semaphore);
+    while(kill(applicationPID,0)>=0){
+        int sem_value=0;
+        sem_getvalue(application_semaphore,&sem_value);
+        //printf("El valor del semaforo es%d\n",sem_value);
         while(shmadd[i]!='\0'){
             putchar(shmadd[i++]);
         }
     }
     
+    while(shmadd[i]!='\0'){
+        putchar(shmadd[i++]);
+    }
+    
+
+    // Close semaphore
+    sem_close(application_semaphore);
+    sem_unlink("application_semaphore");
+
+
+    // Free shared memory
+    shmdt(shmadd);
+
     return 0;
 }
