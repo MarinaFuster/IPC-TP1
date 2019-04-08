@@ -14,6 +14,7 @@
 #define EXIT_ERROR 1
 #define PIDLENGTH 10
 #define SHARED_MEMORY_SIZE 50*150
+#define TIME_LAPSE 7
 
 
 int
@@ -21,7 +22,7 @@ main(int argc, char ** argv){
 
 
 	char pid[PIDLENGTH];
-	sleep(3);                      //Set timer of 3 seconds in order to wait for user to enter PID
+	sleep(TIME_LAPSE);                      //Set timer of 3 seconds in order to wait for user to enter PID
 	fgets(pid, PIDLENGTH, stdin);
 
     int applicationPID = atoi(pid); 
