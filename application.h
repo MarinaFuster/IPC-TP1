@@ -8,7 +8,7 @@
 #define SELF_PATH "./application"
 #define SLAVE_PATH "./slave"
 #define MD5_PATH "/usr/bin/md5sum"
-
+#define TOLERANCE 25
 #define MAX_FILE_LENGTH 50
 
 #endif // APPLICATION_H
