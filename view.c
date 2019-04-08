@@ -1,26 +1,27 @@
+#include <fcntl.h> 
+#include <semaphore.h>
+#include <signal.h>
+#include <stdio.h> 
+#include <stdlib.h>
+#include <sys/ipc.h> 
 #include <sys/select.h>
+#include <sys/shm.h> 
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h> 
-#include <sys/ipc.h> 
-#include <sys/shm.h> 
-#include <stdio.h> 
-#include <stdlib.h>
-#include <fcntl.h>           
-#include <sys/stat.h>        
-#include <semaphore.h>
-#include <signal.h>
 
-
-#define PIDLENGTH 10
 #define EXIT_ERROR 1
+#define PIDLENGTH 10
 #define SHARED_MEMORY_SIZE 50*150
 
-int main(int argc, char ** argv){
 
-    // Adapted code from https://stackoverflow.com/questions/3711830/set-a-timeout-for-reading-stdin
+int
+main(int argc, char ** argv){
+
+
 	char pid[PIDLENGTH];
-	sleep(3);                      //Set timer of 10 seconds
+	sleep(3);                      //Set timer of 3 seconds in order to wait for user to enter PID
 	fgets(pid, PIDLENGTH, stdin);
 
     int applicationPID = atoi(pid); 
@@ -31,7 +32,7 @@ int main(int argc, char ** argv){
 
 	key_t key = ftok("./application",1356);
 
-	int shmid = shmget(key,1024,0666|IPC_CREAT);
+	int shmid = shmget(key, 1024, 0666|IPC_CREAT);
     if(shmid<0){
         fprintf(stderr, "Error when creating shared memory segment\n");
         return(EXIT_ERROR);
@@ -43,9 +44,11 @@ int main(int argc, char ** argv){
         return(EXIT_ERROR);
     }
 
+
     // Open application semaphore
     sem_t * application_semaphore=sem_open("application_semaphore", O_CREAT, 0777, 0);
-    
+
+
     // Create view semaphore
     sem_unlink("view_semaphore"); // Just in case...
     sem_t * view_semaphore;
@@ -55,10 +58,9 @@ int main(int argc, char ** argv){
         return(EXIT_ERROR);
     }
     
+
     // Printf hash results for files
-
     int i=0;
-
     while(kill(applicationPID,0)>=0){
         int sem_value=0;
         sem_getvalue(application_semaphore,&sem_value);
@@ -66,12 +68,11 @@ int main(int argc, char ** argv){
         while(shmadd[i]!='\0'){
             putchar(shmadd[i++]);
         }
-    }
-    
+    }    
     while(shmadd[i]!='\0'){
         putchar(shmadd[i++]);
     }
-    
+
 
     // Close semaphore
     sem_close(application_semaphore);
@@ -81,5 +82,7 @@ int main(int argc, char ** argv){
     // Free shared memory
     shmdt(shmadd);
 
+
+    // Return
     return 0;
 }
