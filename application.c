@@ -11,7 +11,7 @@
 #include <stdlib.h> // Check if this is needed!
 #include "application.h"
 
-int hash_of(char * file_buffer, int * hash_result_pipe);
+int hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments);
 void clean(char * buffer);
 
 
@@ -61,12 +61,13 @@ main(int argc, char ** argv){
     }
 
 
+
     // Create slaves
     pid_t slave_pid[SLAVEQ];
-  
+
     for(int i=0; i<SLAVEQ; i++){
         printf("Creating slave %d...\n",i);
-    
+
         pid_t pid=fork();
         if(pid==-1){
             fprintf(stderr,"Error when executing fork");
@@ -74,27 +75,46 @@ main(int argc, char ** argv){
         }
         if(pid==0){
 
-            while(1){
-                
-                char * file_buffer=calloc(1,MAX_FILE_LENGTH);
+            char* arguments[TOLERANCE/5];
+            for (int i=0; i< TOLERANCE/5; i++){
+              arguments[i]=calloc(1, MAX_FILE_LENGTH);
+            }
 
+            int moreArguments=0;
+            while(1){
+
+                if (argc>25){
+                  moreArguments=1;
+                }
                 sem_wait(slaves_semaphore);
-                read(files_pipe[0], file_buffer, MAX_FILE_LENGTH);
+                if(moreArguments){
+                  for (int j=0; j<TOLERANCE/5; j++){
+                    read(files_pipe[0], arguments[j], MAX_FILE_LENGTH);
+                  }
+                }
+                else{
+                  read(files_pipe[0], arguments[0], MAX_FILE_LENGTH);
+                }
                 sem_post(slaves_semaphore);
-                
-                if(hash_of(file_buffer, hash_result_pipe)==EXIT_ERROR){
+
+                if(hash_of(arguments, hash_result_pipe, moreArguments)==EXIT_ERROR){
                     fprintf(stderr,"Error when executing fork");
                     return(EXIT_ERROR);
                 }
 
-                free(file_buffer);
+                for (i=0; i<TOLERANCE/5; i++){
+                  clean(arguments[i]);
+                }
+                moreArguments=0;
 
             }
             return 0;
-        
+
         }
         slave_pid[i]=pid;
     }
+
+
 
 
     // Distribute files
@@ -130,7 +150,7 @@ main(int argc, char ** argv){
         read(hash_result_pipe[0], memory_p, 1024);
         //fprintf(stderr,"%s\n",shmadd);    
         sem_post(application_semaphore);
-        sleep(1);
+        sleep(2);
         fprintf(stderr,"please post the result\n");
         while((*memory_p)!='\0'){
             if((*memory_p)=='\n')
@@ -161,7 +181,7 @@ main(int argc, char ** argv){
 }
 
 int
-hash_of(char * file_buffer, int * hash_result_pipe){
+hash_of(char ** file_buffer, int * hash_result_pipe, int moreArguments){
 
     pid_t pid=fork();
     if(pid==-1){
@@ -169,17 +189,29 @@ hash_of(char * file_buffer, int * hash_result_pipe){
         return(EXIT_ERROR);
     }
     else if(pid==0){
-        char * execv_arguments[3];
-
+      char* execv_arguments[TOLERANCE/5+2];
+      char* execv_arguments2[3];
+      dup2(hash_result_pipe[1],STDOUT_FILENO);
+      close(hash_result_pipe[0]);
+      close(hash_result_pipe[1]);
+      if(moreArguments){
+        //char * execv_arguments[7];
         execv_arguments[0]=SELF_PATH;
-        execv_arguments[1]=file_buffer;
-        execv_arguments[2]=NULL;
-
-        dup2(hash_result_pipe[1],STDOUT_FILENO);
-        close(hash_result_pipe[0]);
-        close(hash_result_pipe[1]);
-
+        for (int i=0; i<TOLERANCE/5; i++){
+          execv_arguments[i+1]=file_buffer[i];
+        }
+        execv_arguments[TOLERANCE/5+1]=NULL;
         execv(MD5_PATH,execv_arguments);
+      }
+      else
+      {
+        execv_arguments2[0]=SELF_PATH;
+        execv_arguments2[1]=file_buffer[0];
+        execv_arguments2[2]=NULL;
+        execv(MD5_PATH,execv_arguments2);
+      }
+
+
     }
     return 0;
 }
