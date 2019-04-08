@@ -81,11 +81,11 @@ main(int argc, char ** argv){
             }
 
             int more_arguments=0;
+            if (argc>TOLERANCE){
+                more_arguments=1;
+            }
             while(1){
 
-                if (argc>TOLERANCE){
-                  more_arguments=1;
-                }
                 sem_wait(slaves_semaphore);
                 if(more_arguments){
                   for (int j=0; j<TOLERANCE/SLAVEQ; j++){
