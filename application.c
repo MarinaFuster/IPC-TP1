@@ -7,6 +7,8 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdlib.h>
+
 #include "application.h"
 
 int hash_of(char ** file_buffer, int * hash_result_pipe, int more_arguments);
