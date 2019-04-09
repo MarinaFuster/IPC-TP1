@@ -1,7 +1,7 @@
 #include <fcntl.h>
-#include <semaphore.h> 
+#include <semaphore.h>
 #include <signal.h>
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ipc.h>
@@ -35,7 +35,7 @@ main(int argc, char ** argv){
 
 
     // Set up shared memory here!
-    key_t key = ftok("./application",1356); 
+    key_t key = ftok("./application",1356);
     if(key == -1){
         perror("Error when executing ftok");
         exit(1);
@@ -74,8 +74,9 @@ main(int argc, char ** argv){
 
     // Create slaves
     pid_t slave_pid[SLAVEQ];
+    int i=0;
 
-    for(int i=0; i<SLAVEQ; i++){
+    for(i=0; i<SLAVEQ; i++){
 
         pid_t pid=fork();
         if(pid==-1){
@@ -85,7 +86,8 @@ main(int argc, char ** argv){
         if(pid==0){
 
             char* arguments[TOLERANCE/SLAVEQ];
-            for (int i=0; i< TOLERANCE/SLAVEQ; i++){
+            int i=0;
+            for (i=0; i< TOLERANCE/SLAVEQ; i++){
               arguments[i]=calloc(1, MAX_FILE_LENGTH);
             }
 
@@ -96,9 +98,10 @@ main(int argc, char ** argv){
             while(1){
                 sem_wait(slaves_semaphore);
                 if(more_arguments){
-                  for (int j=0; j<TOLERANCE/SLAVEQ; j++){
+                  int j=0;
+                  for (j=0; j<TOLERANCE/SLAVEQ; j++){
                     read(files_pipe[0], arguments[j], MAX_FILE_LENGTH);
-                  } 
+                  }
                 }
                 else{
                   read(files_pipe[0], arguments[0], MAX_FILE_LENGTH);
@@ -108,7 +111,7 @@ main(int argc, char ** argv){
                 if(hash_of(arguments, hash_result_pipe, more_arguments)==EXIT_ERROR){
                     fprintf(stderr,"Error when executing fork");
                     return(EXIT_ERROR);
-                }    
+                }
                 clean(arguments[0]);
                 more_arguments=0;
             }
@@ -121,9 +124,9 @@ main(int argc, char ** argv){
     // Distribute files
     int files_quantity=argc-1;
     int distributed=1;
-    
+
     char * file_buffer=calloc(1,MAX_FILE_LENGTH);
-    
+
     while(distributed <= files_quantity){
         strncpy(file_buffer,argv[distributed],MAX_FILE_LENGTH);
         write(files_pipe[1], file_buffer, MAX_FILE_LENGTH); // Files are sent in fixed length packages
@@ -147,9 +150,9 @@ main(int argc, char ** argv){
     int remaining_files=files_quantity;
     char * memory_p=shmadd;
     while(remaining_files>0){
-        
+
         read(hash_result_pipe[0], memory_p, 1024);
-        
+
         while((*memory_p)!='\0'){
             if((*memory_p)=='\n'){
                 sem_wait(application_semaphore);
@@ -157,12 +160,13 @@ main(int argc, char ** argv){
                 sem_post(application_semaphore);
             }
             memory_p++;
-        }        
+        }
     }
 
 
     // Kill slaves
-    for(int i=0; i<SLAVEQ; i++){
+    int k=0;
+    for(k=0; k<SLAVEQ; k++){
         kill(slave_pid[i], SIGKILL);
     }
 
@@ -208,7 +212,8 @@ hash_of(char ** file_buffer, int * hash_result_pipe, int more_arguments){
       if(more_arguments){
         //char * execv_arguments[7];
         execv_arguments[0]=SELF_PATH;
-        for (int i=0; i<TOLERANCE/SLAVEQ; i++){
+        int i=0;
+        for (i=0; i<TOLERANCE/SLAVEQ; i++){
           execv_arguments[i+1]=file_buffer[i];
         }
         execv_arguments[TOLERANCE/SLAVEQ+1]=NULL;
